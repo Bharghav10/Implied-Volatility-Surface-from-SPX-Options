@@ -155,11 +155,11 @@ def transform(row: dict[str, str], option_type: str) -> dict[str, str]:
     return out
 
 
-def passes_starter_filter(row: dict[str, str]) -> bool:
+def passes_starter_filter(row: dict[str, str], min_dte: float) -> bool:
     """Apply the initial quality, maturity, moneyness, and delta filters."""
     try:
         return (
-            7 <= float(row["dte"]) <= 365
+            min_dte <= float(row["dte"]) <= 365
             and float(row["strike"]) > 0
             and float(row["underlying_last"]) > 0
             and 0.03 <= float(row["iv"]) <= 2.00
@@ -178,6 +178,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", type=Path, default=Path("data"))
     parser.add_argument("--output", type=Path, default=Path("data/cleaned/spx_options_2023_filtered.csv"))
+    parser.add_argument("--min-dte", type=float, default=3.0, help="Minimum days to expiration (default: 3)")
     args = parser.parse_args()
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -202,7 +203,7 @@ def main() -> int:
                         if dte <= 0 or strike <= 0:
                             skipped += 1
                             continue
-                        if not passes_starter_filter(cleaned):
+                        if not passes_starter_filter(cleaned, args.min_dte):
                             skipped += 1
                             continue
                         writer.writerow(cleaned)
